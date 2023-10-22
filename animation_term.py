@@ -4,6 +4,8 @@ import matplotlib.patches as patches
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from IPython import display 
+import matplotlib.animation as animation
 from matplotlib.patches import Rectangle
 plt.style.use('classic')
 from matplotlib.animation import FuncAnimation
@@ -20,6 +22,7 @@ Nx = 51  # Número de nodos en el eje x
 Ny = 51  # Número de nodos en el eje y
 x_len = 51
 y_len = 51
+p = 0.5 # m profundidad
 A = np.zeros(( x_len*y_len , x_len*y_len))
 c = np.zeros(x_len*y_len)
 
@@ -47,7 +50,7 @@ def equation_interior_gen(i, j, q):
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
-    c[idx] = (-q*delta_x**2)/k
+    c[idx] = (-q*delta_x**2)/(k*p)
 
 
 # Esquina central
@@ -60,7 +63,7 @@ def equation_interior_wc(i, j, q):
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx - Nx] = 2  # Coeficiente para el nodo abajo
-    c[idx] = -2*h*(delta_x/k)*T_inf
+    c[idx] = -2*h*(delta_x/(k*p))*T_inf
 
 
 # a la derecha zona convectiva
@@ -72,7 +75,7 @@ def equation_plane_wc_der(i, j, q):
     A[idx, idx - 1] = 2  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
-    c[idx] = -2*h*(delta_x/k)*T_inf
+    c[idx] = -2*h*(delta_x/(k*p))*T_inf
 
 
 # arriba la zona convectiva
@@ -84,7 +87,7 @@ def equation_plane_wc_arr(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
     A[idx, idx - Nx] = 2  # Coeficiente para el nodo abajo
-    c[idx] = -2*h*(delta_x/k)*T_inf
+    c[idx] = -2*h*(delta_x/(k*p))*T_inf
 
 # zonas con bordes aislados abajo sin generación
 
@@ -105,7 +108,7 @@ def equation_esquina_wc_case4(i, j, q):
     A[idx, idx] = -2*((h*delta_x/k) + 1) # Coeficiente para el nodo actual
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
-    c[idx] = -2*(h*delta_x/k)*T_inf
+    c[idx] = -2*(h*delta_x/(k*p))*T_inf
 
 
 # zonas con bordes aislados izquierda sin generación
@@ -125,18 +128,18 @@ def equation_esquina_arr(i, j, q):
     # Ecuación para nodos en el borde
     idx = i + j * Nx
     # print(idx)
-    A[idx, idx] = -(2 + h/k)  # Coeficiente para el nodo actual
+    A[idx, idx] = -(2 + h*delta_x/k)  # Coeficiente para el nodo actual
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -h*(T_inf/k)
+    c[idx] = -h*(T_inf*delta_x/(k*p))
 
 def equation_esquina_aba(i, j, q):
     # Ecuación para nodos en el borde
     idx = i + j * Nx
-    A[idx, idx] = -(2 + h/k)  # Coeficiente para el nodo actual
+    A[idx, idx] = -(2 + h*delta_x/k)  # Coeficiente para el nodo actual
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
-    c[idx] = -h*(T_inf/k)
+    c[idx] = -h*(T_inf-delta_x/(k*p))
 
 # bordes con generación asilados 
 
@@ -147,7 +150,7 @@ def equation_borde_aba(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 2  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/k
+    c[idx] = -q*(delta_x**2)/(k*p)
 
 def equation_borde_izq(i, j, q):
     # Ecuación para nodos en el borde
@@ -156,7 +159,7 @@ def equation_borde_izq(i, j, q):
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 2  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/k
+    c[idx] = -q*(delta_x**2)/(k*p)
 
 # esquina inferior con generación
 
@@ -166,7 +169,7 @@ def equation_esquina_gen(i, j, q):
     A[idx, idx] = -2 # Coeficiente para el nodo actual
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(2*k)
+    c[idx] = -q*(delta_x**2)/(2*(k*p))
 
 # esquina inferior con generación y aislada
 
@@ -177,7 +180,7 @@ def equation_esquina_gen_ais_izq(i, j, q):
     A[idx, idx - Nx] = 1  # Coeficiente para el nodo abajo
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(2*k)
+    c[idx] = -q*(delta_x**2)/(2*(k*p))
 
 def equation_esquina_gen_ais_aba(i, j, q):
     # Ecuación para nodos en el borde
@@ -186,7 +189,7 @@ def equation_esquina_gen_ais_aba(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(2*k)
+    c[idx] = -q*(delta_x**2)/(2*(k*p))
 
 # esquina interior gen
 
@@ -198,7 +201,7 @@ def equation_esquina_interior_gen(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(4*k)
+    c[idx] = -q*(delta_x**2)/(4*(k*p))
 
 # bordes con generación no aislados REVISAR *****************
 
@@ -210,7 +213,7 @@ def equation_borde_gen(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(2*k)
+    c[idx] = -q*(delta_x**2)/(2*(k*p))
 
 
 # borde interior con generación 
@@ -222,7 +225,7 @@ def equation_borde_gen_da(i, j, q):
     A[idx, idx - 1] = 1  # Coeficiente para el nodo a la izquierda
     A[idx, idx + Nx] = 1  # Coeficiente para el nodo arriba
     A[idx, idx + 1] = 1  # Coeficiente para el nodo a la derecha
-    c[idx] = -q*(delta_x**2)/(2*k)
+    c[idx] = -q*(delta_x**2)/(2*(k*p))
 
 # definición de limites de malla
 
@@ -402,7 +405,7 @@ plt.gca().add_patch(cuadrado2)
 ax.set_xlabel('x (m)')
 ax.set_ylabel('y (m)')
 # Crear la animación
-ani = FuncAnimation(fig, update, frames=range(100), repeat=False)
-
+ani = FuncAnimation(fig, update, frames=range(100), repeat=False) 
+# ani.save('increasingStraightLine.mp4') 
 # Mostrar la animación
 plt.show()
