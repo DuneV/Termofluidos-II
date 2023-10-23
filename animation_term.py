@@ -13,7 +13,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # Parámetros del problema
 # Define tus parámetros aquí
-T_inf = 25 # °C 
+T_inf = 20 # °C 
 delta_x = 1/100 # m
 k = 0.08 # w/m2°C
 h = 100 # w/m2°C
@@ -330,7 +330,7 @@ def termo_solver(q):
 
 dq = 100  # w
 goal = 700  # °C
-init = 10**4
+init = 10**3
 info = termo_solver(init)  # Asume que termo_solver y init están definidos en tu código
 
 # Función que genera o actualiza los datos en cada iteración del bucle
